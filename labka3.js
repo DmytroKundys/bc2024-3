@@ -1,52 +1,50 @@
-const { program } = require('commander');
+const { Command } = require('commander');
 const fs = require('fs');
+const program = new Command();
 
-function readInputFile(filePath) {
-    if (!fs.existsSync(filePath)) {
-        console.error("Cannot find input file");
-        process.exit(1);
-    }
-
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
-}
-
-function writeOutputFile(filePath, data) {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-    console.log(`Result written to ${filePath}`);
-}
-
-
+// Додаємо параметри командного рядка
 program
-    .requiredOption('-i, --input <path>', 'Path to input JSON file')
-    .option('-o, --output <path>', 'Path to output file')
-    .option('-d, --display', 'Display result in console');
+  .option('-i, --input <type>', 'шлях до файлу, який даємо для читання')
+  .option('-o, --output <type>', 'шлях до файлу, у якому записуємо результат')
+  .option('-d, --display', 'вивести результат у консоль');
 
+// Парсимо аргументи командного рядка
 program.parse(process.argv);
 
 const options = program.opts();
 
+// Перевірка обов’язкового параметра
+if (!options.input) {
+  console.error('Please, specify input file');
+  process.exit(1); // Вихід з кодом помилки
+}
 
+// Перевірка наявності вхідного файлу
 if (!fs.existsSync(options.input)) {
-    console.error("Cannot find input file");
-    process.exit(1);
+  console.error('Cannot find input file');
+  process.exit(1); // Вихід з кодом помилки
 }
 
-function formatBondData(bond) {
-    return `${bond.StockCode}-${bond.ValCode}-${bond.Attraction}`;
+// Читання вмісту файлу
+let data;
+try {
+  const fileContent = fs.readFileSync(options.input, 'utf8');
+  data = JSON.parse(fileContent); // Спроба парсити JSON
+} catch (error) {
+  console.error('Error parsing JSON:', error.message);
+  process.exit(1);
 }
 
-const inputData = readInputFile(options.input);
-
-const formattedResults = inputData.map(formatBondData).join('\n');
+// Якщо задано параметр -d, виводимо результат у консоль
 if (options.display) {
-    console.log(formattedResults);
+  console.log(JSON.stringify(data, null, 2)); // Вивід у форматі JSON з відступами
 }
 
+// Якщо задано параметр -o, записуємо результат у файл
 if (options.output) {
-    writeOutputFile(options.output, formattedResults);
-}
-
-if (!options.output && !options.display) {
-    process.exit(0);
+  fs.writeFileSync(options.output, JSON.stringify(data, null, 2));
+  // Якщо задано одночасно -o та -d, виводимо результат у консоль
+  if (options.display) {
+    console.log('Результат записано у файл:', options.output);
+  }
 }
