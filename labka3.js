@@ -1,50 +1,56 @@
 const { Command } = require('commander');
 const fs = require('fs');
+
 const program = new Command();
 
-// Додаємо параметри командного рядка
 program
-  .option('-i, --input <type>', 'шлях до файлу, який даємо для читання')
-  .option('-o, --output <type>', 'шлях до файлу, у якому записуємо результат')
-  .option('-d, --display', 'вивести результат у консоль');
+    .option('-i, --input <file>', 'input file')
+    .option('-o, --output <file>', 'output file')
+    .option('-d, --display', 'display result in console');
 
-// Парсимо аргументи командного рядка
 program.parse(process.argv);
 
 const options = program.opts();
 
-// Перевірка обов’язкового параметра
 if (!options.input) {
-  console.error('Please, specify input file');
-  process.exit(1); // Вихід з кодом помилки
+    console.error("Please, specify input file");
+    process.exit(1);
 }
 
-// Перевірка наявності вхідного файлу
+// Перевірка наявності файлу
 if (!fs.existsSync(options.input)) {
-  console.error('Cannot find input file');
-  process.exit(1); // Вихід з кодом помилки
+    console.error("Cannot find input file");
+    process.exit(1);
 }
 
-// Читання вмісту файлу
-let data;
+// Читання файлу
+const data = fs.readFileSync(options.input);
+let jsonData;
+
 try {
-  const fileContent = fs.readFileSync(options.input, 'utf8');
-  data = JSON.parse(fileContent); // Спроба парсити JSON
+    jsonData = JSON.parse(data);
 } catch (error) {
-  console.error('Error parsing JSON:', error.message);
-  process.exit(1);
+    console.error("Error parsing JSON:", error.message);
+    process.exit(1);
 }
 
-// Якщо задано параметр -d, виводимо результат у консоль
+// Знаходження максимального курсу
+let maxRate = -Infinity; // Ініціалізуємо з мінімального значення
+jsonData.forEach(entry => {
+    if (entry.rate > maxRate) {
+        maxRate = entry.rate;
+    }
+});
+
+// Форматування результату
+const result = `Максимальний курс: ${maxRate}`;
+
+// Виведення результатів
 if (options.display) {
-  console.log(JSON.stringify(data, null, 2)); // Вивід у форматі JSON з відступами
+    console.log(result);
 }
 
-// Якщо задано параметр -o, записуємо результат у файл
+// Запис у файл, якщо задано
 if (options.output) {
-  fs.writeFileSync(options.output, JSON.stringify(data, null, 2));
-  // Якщо задано одночасно -o та -d, виводимо результат у консоль
-  if (options.display) {
-    console.log('Результат записано у файл:', options.output);
-  }
+    fs.writeFileSync(options.output, result);
 }
